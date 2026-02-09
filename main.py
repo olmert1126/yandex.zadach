@@ -16,6 +16,9 @@ class MapWindow(QMainWindow):
         self.setWindowTitle("Карта по координатам")
         self.resize(800, 600)
 
+        self.lat = 0
+        self.lon = 0
+
         # Центральный виджет и макет
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -54,16 +57,22 @@ class MapWindow(QMainWindow):
 
         self.apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
-    def load_map(self):
+    def load_map(self, flag):
         lat_text = self.lat_edit.text().strip()
         lon_text = self.lon_edit.text().strip()
 
         try:
-            lat = float(lat_text)
-            lon = float(lon_text)
-            if not (-90 <= lat <= 90):
+            if flag:
+                if flag == "Up":
+                    self.lon = float(lon_text)
+                    self.lat = float(lat_text) + (float(lat_text) * 0.00001)
+                    self.lat_edit.setText(str(round(self.lat, 6)))
+            else:
+                self.lat = float(lat_text)
+                self.lon = float(lon_text)
+            if not (-90 <= self.lat <= 90):
                 raise ValueError("Широта должна быть от -90 до 90")
-            if not (-180 <= lon <= 180):
+            if not (-180 <= self.lon <= 180):
                 raise ValueError("Долгота должна быть от -180 до 180")
         except ValueError as e:
             self.status_bar.showMessage(f"Ошибка: {e}", 5000)
@@ -73,7 +82,7 @@ class MapWindow(QMainWindow):
 
         # Формируем запрос к Yandex Static Maps
         map_params = {
-            "ll": f"{lon},{lat}",
+            "ll": f"{self.lon},{self.lat}",
             "spn": "0.005,0.005",
             "l": "map",
             "size": "600,400",
@@ -97,10 +106,21 @@ class MapWindow(QMainWindow):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             ))
-            self.status_bar.showMessage(f"Карта: {lat}, {lon}", 3000)
+            self.status_bar.showMessage(f"Карта: {self.lat}, {self.lon}", 3000)
 
         except Exception as e:
             self.status_bar.showMessage(f"Ошибка загрузки карты: {str(e)}", 5000)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Left:
+            pass
+        if event.key() == Qt.Key.Key_Right:
+            pass
+        if event.key() == Qt.Key.Key_Up:
+            self.load_map("Up")
+        if event.key() == Qt.Key.Key_Down:
+            pass
+
 
 
 def main():
