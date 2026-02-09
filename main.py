@@ -4,11 +4,10 @@ import requests
 from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar
+    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar, QComboBox
 )
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
-
 
 class MapWindow(QMainWindow):
     def __init__(self):
@@ -29,6 +28,12 @@ class MapWindow(QMainWindow):
         self.lon_edit.setPlaceholderText("Долгота")
         input_layout.addWidget(self.lat_edit)
         input_layout.addWidget(self.lon_edit)
+
+        # --- ДОБАВЛЕНО: переключатель темы ---
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["Светлая", "Тёмная"])
+        input_layout.addWidget(self.theme_combo)
+        # --- КОНЕЦ ДОБАВЛЕНИЯ ---
 
         # Кнопка "Показать карту"
         self.load_btn = QPushButton("Показать карту")
@@ -71,11 +76,16 @@ class MapWindow(QMainWindow):
 
         self.status_bar.showMessage("Загрузка карты...", 2000)
 
+        # --- ИЗМЕНЕНО: выбор темы карты ---
+        map_style = "map" if self.theme_combo.currentText() == "Светлая" else "Тёмная"
+        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+
         # Формируем запрос к Yandex Static Maps
         map_params = {
             "ll": f"{lon},{lat}",
             "spn": "0.005,0.005",
-            "l": "map",
+            "l": map_style,
             "size": "600,400",
             "apikey": self.apikey
         }
@@ -97,18 +107,16 @@ class MapWindow(QMainWindow):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             ))
-            self.status_bar.showMessage(f"Карта: {lat}, {lon}", 3000)
+            self.status_bar.showMessage(f"Карта: {lat}, {lon} ({self.theme_combo.currentText()})", 3000)
 
         except Exception as e:
             self.status_bar.showMessage(f"Ошибка загрузки карты: {str(e)}", 5000)
-
 
 def main():
     app = QApplication(sys.argv)
     window = MapWindow()
     window.show()
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     main()
