@@ -4,11 +4,10 @@ import requests
 from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar
+    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar, QComboBox
 )
 from PyQt6.QtGui import QPixmap, QImage, QKeyEvent
 from PyQt6.QtCore import Qt
-
 
 class MapWindow(QMainWindow):
     def __init__(self):
@@ -140,7 +139,6 @@ def main():
     window = MapWindow()
     window.show()
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     main()
