@@ -6,8 +6,8 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton,
     QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar, QComboBox
 )
-from PyQt6.QtGui import QPixmap, QImage, QKeyEvent
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap, QImage
+from PyQt6.QtCore import Qt, QEvent
 
 class MapWindow(QMainWindow):
     def __init__(self):
@@ -15,6 +15,10 @@ class MapWindow(QMainWindow):
         self.setWindowTitle("Карта по координатам")
         self.resize(800, 600)
 
+        self.lat = 0
+        self.lon = 0
+
+        # Центральный виджет и макет
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
@@ -45,27 +49,32 @@ class MapWindow(QMainWindow):
         self.lat_edit.returnPressed.connect(self.load_map)
         self.lon_edit.returnPressed.connect(self.load_map)
 
+        self.lat_edit.installEventFilter(self)
+        self.lon_edit.installEventFilter(self)
+
         self.apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
-        self.current_lat = None
-        self.current_lon = None
-        self.zoom_level = 15
-        self.min_zoom = 0
-        self.max_zoom = 21
-
-    def _zoom_to_spn(self, zoom):
-        return 180.0 / (2 ** zoom)
-
-    def load_map(self):
+    def load_map(self, flag):
         lat_text = self.lat_edit.text().strip()
         lon_text = self.lon_edit.text().strip()
 
         try:
-            lat = float(lat_text)
-            lon = float(lon_text)
-            if not (-90 <= lat <= 90):
+            if flag:
+                step = 0.005
+                if flag == "Up":
+                    self.lat += step
+                elif flag == "Down":
+                    self.lat -= step
+                elif flag == "Left":
+                    self.lon -= step
+                elif flag == "Right":
+                    self.lon += step
+            else:
+                self.lat = float(lat_text)
+                self.lon = float(lon_text)
+            if not (-90 <= self.lat <= 90):
                 raise ValueError("Широта должна быть от -90 до 90")
-            if not (-180 <= lon <= 180):
+            if not (-180 <= self.lon <= 180):
                 raise ValueError("Долгота должна быть от -180 до 180")
         except ValueError as e:
             self.status_bar.showMessage(f"Ошибка: {e}", 5000)
@@ -80,8 +89,8 @@ class MapWindow(QMainWindow):
 
         spn_val = self._zoom_to_spn(self.zoom_level)
         map_params = {
-            "ll": f"{self.current_lon},{self.current_lat}",
-            "spn": f"{spn_val},{spn_val}",
+            "ll": f"{self.lon},{self.lat}",
+            "spn": "0.005,0.005",
             "l": "map",
             "size": "600,400",
             "apikey": self.apikey
@@ -111,6 +120,30 @@ class MapWindow(QMainWindow):
         except Exception as e:
             self.status_bar.showMessage(f"Ошибка загрузки карты: {str(e)}", 5000)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Left:
+            self.load_map("Left")
+        if event.key() == Qt.Key.Key_Right:
+            self.load_map("Right")
+        if event.key() == Qt.Key.Key_Up:
+            self.load_map("Up")
+        if event.key() == Qt.Key.Key_Down:
+            self.load_map("Down")
+
+    def eventFilter(self, source, event):
+        if (event.type() == event.Type.KeyPress and
+                source in (self.lat_edit, self.lon_edit) and
+                event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right,
+                                Qt.Key.Key_Up, Qt.Key.Key_Down)):
+            direction_map = {
+                Qt.Key.Key_Up: "Up",
+                Qt.Key.Key_Down: "Down",
+                Qt.Key.Key_Left: "Left",
+                Qt.Key.Key_Right: "Right"
+            }
+            self.load_map(direction_map[event.key()])
+            return True
+        return super().eventFilter(source, event)
     def keyPressEvent(self, event: QKeyEvent):
         if self.current_lat is None or self.current_lon is None:
             return
