@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar
 )
 from PyQt6.QtGui import QPixmap, QImage
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent
 
 
 class MapWindow(QMainWindow):
@@ -55,6 +55,9 @@ class MapWindow(QMainWindow):
         self.lat_edit.returnPressed.connect(self.load_map)
         self.lon_edit.returnPressed.connect(self.load_map)
 
+        self.lat_edit.installEventFilter(self)
+        self.lon_edit.installEventFilter(self)
+
         self.apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
     def load_map(self, flag):
@@ -63,10 +66,15 @@ class MapWindow(QMainWindow):
 
         try:
             if flag:
+                step = 0.005
                 if flag == "Up":
-                    self.lon = float(lon_text)
-                    self.lat = float(lat_text) + (float(lat_text) * 0.00001)
-                    self.lat_edit.setText(str(round(self.lat, 6)))
+                    self.lat += step
+                elif flag == "Down":
+                    self.lat -= step
+                elif flag == "Left":
+                    self.lon -= step
+                elif flag == "Right":
+                    self.lon += step
             else:
                 self.lat = float(lat_text)
                 self.lon = float(lon_text)
@@ -113,14 +121,28 @@ class MapWindow(QMainWindow):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Left:
-            pass
+            self.load_map("Left")
         if event.key() == Qt.Key.Key_Right:
-            pass
+            self.load_map("Right")
         if event.key() == Qt.Key.Key_Up:
             self.load_map("Up")
         if event.key() == Qt.Key.Key_Down:
-            pass
+            self.load_map("Down")
 
+    def eventFilter(self, source, event):
+        if (event.type() == event.Type.KeyPress and
+                source in (self.lat_edit, self.lon_edit) and
+                event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right,
+                                Qt.Key.Key_Up, Qt.Key.Key_Down)):
+            direction_map = {
+                Qt.Key.Key_Up: "Up",
+                Qt.Key.Key_Down: "Down",
+                Qt.Key.Key_Left: "Left",
+                Qt.Key.Key_Right: "Right"
+            }
+            self.load_map(direction_map[event.key()])
+            return True
+        return super().eventFilter(source, event)
 
 
 def main():
