@@ -4,10 +4,10 @@ import requests
 from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar, QComboBox
+    QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QStatusBar
 )
-from PyQt6.QtGui import QPixmap, QImage
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import QPixmap, QImage, QKeyEvent
+from PyQt6.QtCore import Qt
 
 class MapWindow(QMainWindow):
     def __init__(self):
@@ -52,6 +52,12 @@ class MapWindow(QMainWindow):
         self.lat_edit.installEventFilter(self)
         self.lon_edit.installEventFilter(self)
 
+        self.current_lat = None
+        self.current_lon = None
+        self.zoom_level = 15
+        self.min_zoom = 0
+        self.max_zoom = 21
+
         self.apikey = "f3a0fe3a-b07e-4840-a1da-06f18b2ddf13"
 
     def load_map(self, flag):
@@ -80,8 +86,8 @@ class MapWindow(QMainWindow):
             self.status_bar.showMessage(f"Ошибка: {e}", 5000)
             return
 
-        self.current_lat = lat
-        self.current_lon = lon
+        self.current_lat = self.lat
+        self.current_lon = self.lon
         self._fetch_and_show_map()
 
     def _fetch_and_show_map(self):
@@ -90,7 +96,7 @@ class MapWindow(QMainWindow):
         spn_val = self._zoom_to_spn(self.zoom_level)
         map_params = {
             "ll": f"{self.lon},{self.lat}",
-            "spn": "0.005,0.005",
+            "spn": f"{spn_val},{spn_val}",
             "l": "map",
             "size": "600,400",
             "apikey": self.apikey
@@ -120,15 +126,6 @@ class MapWindow(QMainWindow):
         except Exception as e:
             self.status_bar.showMessage(f"Ошибка загрузки карты: {str(e)}", 5000)
 
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Left:
-            self.load_map("Left")
-        if event.key() == Qt.Key.Key_Right:
-            self.load_map("Right")
-        if event.key() == Qt.Key.Key_Up:
-            self.load_map("Up")
-        if event.key() == Qt.Key.Key_Down:
-            self.load_map("Down")
 
     def eventFilter(self, source, event):
         if (event.type() == event.Type.KeyPress and
@@ -144,7 +141,19 @@ class MapWindow(QMainWindow):
             self.load_map(direction_map[event.key()])
             return True
         return super().eventFilter(source, event)
+
+    def _zoom_to_spn(self, zoom):
+        return 180.0 / (2 ** zoom)
     def keyPressEvent(self, event: QKeyEvent):
+        if event.key() == Qt.Key.Key_Left:
+            self.load_map("Left")
+        if event.key() == Qt.Key.Key_Right:
+            self.load_map("Right")
+        if event.key() == Qt.Key.Key_Up:
+            self.load_map("Up")
+        if event.key() == Qt.Key.Key_Down:
+            self.load_map("Down")
+
         if self.current_lat is None or self.current_lon is None:
             return
 
@@ -172,10 +181,6 @@ def main():
     window = MapWindow()
     window.show()
     sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()
-
 
 if __name__ == "__main__":
     main()
